@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import { useState, useEffect } from 'react'
+import { searchRecipes } from './api/spoonacular'; // API KO
+import SearchBar from './components/SearchBar'
+import RecipeList from "./components/RecipeList";
+
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  const [recipes, setRecipes] = useState([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const dataFromSearch = (query) => {
+    setSearchQuery(query)
+  }
+
+  useEffect(() => {
+  if (!searchQuery) {
+    setRecipes([]);
+    setError(null);
+    setLoading(false);
+    return;
+  }
+  const handler = setTimeout(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await searchRecipes(searchQuery);
+      setRecipes(result);
+      console.log('✅ Got recipes:', result);
+    } catch (err) {
+      console.error('❌ Error:', err.message);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }, 500); // 👈 debounce delay
+
+  return () => clearTimeout(handler);
+
+  }, [searchQuery]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      <h1>Recipe Finder</h1>
+      
+      <SearchBar onSearch={dataFromSearch}/> 
+      {error && <div className="error">Error: {error}</div>}
+      {loading && <div className="loading">Loading...</div>}
+      
+      {!loading && (
+        <RecipeList recipeData={recipes} />
+      )}
+    </div>
+  );
 }
 
 export default App
